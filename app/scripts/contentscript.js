@@ -20,63 +20,53 @@
     let disabled = false;
     let buttonHtml = '';
 
-    chrome.runtime.sendMessage({from: 'content', subject: 'localStorage'}, function(response){
-      if (!response) { return; }
+    const wipTitleRegex = /[\[(^](do\s*n[o']?t\s*merge|wip|dnm)[\]):]/i;
+    const wipTagRegex = /(wip|do\s*not\s*merge|dnm)/i;
+    const oneApproverText = 'At least 1 approving review is required';
 
-      let localStorage = response.localStorage;
-      const wipTitleRegex = /[\[(^](do\s*n[o']?t\s*merge|wip|dnm)[\]):]/i;
-      const wipTagRegex = /(wip|do\s*not\s*merge|dnm)/i;
-      const oneApproverText = 'At least 1 approving review is required';
+    const isWipTitle = wipTitleRegex.test(issueTitle);
+    const isWipTaskList = container.querySelector('.timeline-comment') && container.querySelector('.timeline-comment').querySelector('input[type="checkbox"]:not(:checked)') !== null;
+    const noOneApproved = statusMeta.indexOf(oneApproverText) !== -1;
+    let isSquashCommits = false;
+    for (const commitMessage of container.querySelectorAll('.commit-message')) {
+      isSquashCommits = isSquashCommits || commitMessage.textContent.match(/(squash|fixup)!/);
+    }
 
-      const isWipTitle = wipTitleRegex.test(issueTitle);
-      const isWipTaskList = container.querySelector('.timeline-comment') && container.querySelector('.timeline-comment').querySelector('input[type="checkbox"]:not(:checked)') !== null;
-      const noOneApproved = statusMeta.indexOf(oneApproverText) !== -1;
-      let isSquashCommits = false;
-      for (const commitMessage of container.querySelectorAll('.commit-message')) {
-        isSquashCommits = isSquashCommits || commitMessage.textContent.match(/(squash|fixup)!/);
+    let isWipTag = false;
+    for (const label of container.querySelectorAll('.js-issue-labels .IssueLabel')) {
+      isWipTag = isWipTag || label.textContent.match(wipTagRegex);
+    }
+
+    disabled = (isWipTitle || isWipTaskList || isSquashCommits || isWipTag || noOneApproved);
+
+    let buttonMessage = '';
+
+    buttonMessage = 'Approve First!!!';
+  
+    buttonHtml = disabled ? buttonMessage : 'Merge pull request';
+    if (disabled) {
+      document.querySelector('.js-admin-merge-override').disabled = true;
+      for (const buttonMerge of buttonMerges) {
+        buttonMerge.disabled = disabled;
+        buttonMerge.innerHTML = buttonHtml;
       }
-
-      let isWipTag = false;
-      for (const label of container.querySelectorAll('.js-issue-labels .IssueLabel')) {
-        isWipTag = isWipTag || label.textContent.match(wipTagRegex);
+      for (const buttonMergeOption of buttonMergeOptions) {
+        buttonMergeOption.disabled = disabled;
       }
+    }
 
-      disabled = (isWipTitle || isWipTaskList || isSquashCommits || isWipTag || noOneApproved);
+    // unset variables
+    container = null;
+    issueTitle = null;
+    disabled = null;
+    buttonMerges = null;
+    buttonMergeOptions = null;
+    buttonHtml = null;
+    buttonMessage = null;
+    isSquashCommits = null;
+    isWipTag = null;
 
-      let buttonMessage = '';
-
-      if (localStorage && localStorage.buttonMessage) {
-        buttonMessage = localStorage.buttonMessage;
-      } else {
-        buttonMessage = 'Approve First!!!';
-      }
-
-      buttonHtml = disabled ? buttonMessage : 'Merge pull request';
-      if (disabled) {
-        document.querySelector('.js-admin-merge-override').disabled = true;
-        for (const buttonMerge of buttonMerges) {
-          buttonMerge.disabled = disabled;
-          buttonMerge.innerHTML = buttonHtml;
-        }
-        for (const buttonMergeOption of buttonMergeOptions) {
-          buttonMergeOption.disabled = disabled;
-        }
-      }
-
-      // unset variables
-      container = null;
-      issueTitle = null;
-      disabled = null;
-      buttonMerges = null;
-      buttonMergeOptions = null;
-      buttonHtml = null;
-      buttonMessage = null;
-      localStorage = null;
-      isSquashCommits = null;
-      isWipTag = null;
-
-      setTimeout(changeMergeButtonState, 1000);
-    });
+    setTimeout(changeMergeButtonState, 1000);
   }
 
   changeMergeButtonState();
