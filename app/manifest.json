@@ -16,7 +16,6 @@
             "scripts/background.js"
         ]
     },
-    "options_page": "options.html",
     "content_scripts": [
         {
             "matches": [
