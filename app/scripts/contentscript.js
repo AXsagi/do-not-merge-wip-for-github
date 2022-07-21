@@ -39,11 +39,7 @@
 
     disabled = (isWipTitle || isWipTaskList || isSquashCommits || isWipTag || noOneApproved);
 
-    let buttonMessage = '';
-
-    buttonMessage = 'Approve First!!!';
-  
-    buttonHtml = disabled ? buttonMessage : 'Merge pull request';
+    buttonHtml = disabled ? 'Approve First!!!' : 'Merge pull request';
     if (disabled) {
       document.querySelector('.js-admin-merge-override').disabled = true;
       for (const buttonMerge of buttonMerges) {
@@ -62,7 +58,6 @@
     buttonMerges = null;
     buttonMergeOptions = null;
     buttonHtml = null;
-    buttonMessage = null;
     isSquashCommits = null;
     isWipTag = null;
 
