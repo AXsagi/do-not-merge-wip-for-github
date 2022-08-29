@@ -2,8 +2,6 @@
   'use strict';
 
   async function changeMergeButtonState() {
-    let container = document.querySelector('#js-repo-pjax-container');
-    let issueTitle = container.querySelector('.js-issue-title').textContent;
     var waitASecond = function() {
       return new Promise(resolve => {
           setTimeout(function() {
@@ -14,34 +12,24 @@
     while (document.querySelector('.status-meta') === null){
       await waitASecond();
     }
+    let container = document.querySelector('#js-repo-pjax-container');
+    let issueTitle = container.querySelector('.js-issue-title').textContent;
     let statusMeta = document.querySelector('.status-meta').textContent;
     let buttonMerges = container.querySelectorAll('.merge-message button[data-details-container]');
     let buttonMergeOptions = container.querySelectorAll('.merge-message button[data-details-container] + .select-menu-button');
     let disabled = false;
     let buttonHtml = '';
 
-    const wipTitleRegex = /[\[(^](do\s*n[o']?t\s*merge|wip|dnm)[\]):]/i;
-    const wipTagRegex = /(wip|do\s*not\s*merge|dnm)/i;
     const oneApproverText = 'At least 1 approving review is required';
+    const oneApproverText2 = '1 review requesting changes';
 
-    const isWipTitle = wipTitleRegex.test(issueTitle);
-    const isWipTaskList = container.querySelector('.timeline-comment') && container.querySelector('.timeline-comment').querySelector('input[type="checkbox"]:not(:checked)') !== null;
-    const noOneApproved = statusMeta.indexOf(oneApproverText) !== -1;
-    let isSquashCommits = false;
-    for (const commitMessage of container.querySelectorAll('.commit-message')) {
-      isSquashCommits = isSquashCommits || commitMessage.textContent.match(/(squash|fixup)!/);
-    }
-
-    let isWipTag = false;
-    for (const label of container.querySelectorAll('.js-issue-labels .IssueLabel')) {
-      isWipTag = isWipTag || label.textContent.match(wipTagRegex);
-    }
-
-    disabled = (isWipTitle || isWipTaskList || isSquashCommits || isWipTag || noOneApproved);
+    const noOneApproved = statusMeta.indexOf(oneApproverText) !== -1 || statusMeta.indexOf(oneApproverText2) !== -1;
+    disabled = noOneApproved;
 
     buttonHtml = disabled ? 'Approve First!!!' : 'Merge pull request';
-    if (disabled) {
-      document.querySelector('.js-admin-merge-override').disabled = true;
+    if (disabled && document.querySelector('input.js-admin-merge-override') !== null) {
+      document.querySelector('input.js-admin-merge-override').checked = false;
+      document.querySelector('input.js-admin-merge-override').disabled = true;
       for (const buttonMerge of buttonMerges) {
         buttonMerge.disabled = disabled;
         buttonMerge.innerHTML = buttonHtml;
@@ -58,11 +46,12 @@
     buttonMerges = null;
     buttonMergeOptions = null;
     buttonHtml = null;
-    isSquashCommits = null;
-    isWipTag = null;
 
     setTimeout(changeMergeButtonState, 1000);
   }
-
+  document.addEventListener('click', function handleClick(event) {
+    event.target.classList.add('js-admin-merge-override');
+    changeMergeButtonState();
+  });
   changeMergeButtonState();
 })();
